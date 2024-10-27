@@ -11,6 +11,9 @@
         #loadingSpinner {
             display: none;
         }
+        .invalid-feedback {
+            display: none; /* Initially hide validation messages */
+        }
     </style>
 </head>
 <body>
@@ -20,35 +23,41 @@
 
         <!-- Form container -->
         <div id="formContainer">
-            <form action="/calculate" method="post" class="mx-auto" style="max-width: 500px;" onsubmit="showSpinner()">
+            <form id="optionForm" action="/calculate" method="post" class="mx-auto" style="max-width: 500px;" onsubmit="showSpinner()">
                 <div class="form-group">
                     <label for="S0">Initial Stock Price (S0):</label>
-                    <input type="number" step="0.01" name="S0" class="form-control" required>
+                    <input type="number" step="0.01" name="S0" class="form-control" required oninput="validateSingle(this)">
+                    <div class="invalid-feedback">Please enter a positive value.</div>
                 </div>
 
                 <div class="form-group">
                     <label for="K">Strike Price (K):</label>
-                    <input type="number" step="0.01" name="K" class="form-control" required>
+                    <input type="number" step="0.01" name="K" class="form-control" required oninput="validateSingle(this)">
+                    <div class="invalid-feedback">Please enter a positive value.</div>
                 </div>
 
                 <div class="form-group">
                     <label for="T">Time to Maturity (T, in years):</label>
-                    <input type="number" step="0.01" name="T" class="form-control" required>
+                    <input type="number" step="0.01" name="T" class="form-control" required oninput="validateSingle(this)">
+                    <div class="invalid-feedback">Please enter a positive value.</div>
                 </div>
 
                 <div class="form-group">
                     <label for="dt">Time Increment (Δt, in years):</label>
-                    <input type="number" step="0.01" name="dt" class="form-control" required>
+                    <input type="number" step="0.01" name="dt" class="form-control" required oninput="validateSingle(this)">
+                    <div class="invalid-feedback">Please enter a positive value.</div>
                 </div>
 
                 <div class="form-group">
                     <label for="r">Risk-free Interest Rate (r):</label>
-                    <input type="number" step="0.01" name="r" class="form-control" required>
+                    <input type="number" step="0.01" name="r" class="form-control" required oninput="validateSingle(this)">
+                    <div class="invalid-feedback">Please enter a positive value.</div>
                 </div>
 
                 <div class="form-group">
                     <label for="sigma">Volatility (σ):</label>
-                    <input type="number" step="0.01" name="sigma" class="form-control" required>
+                    <input type="number" step="0.01" name="sigma" class="form-control" required oninput="validateSingle(this)">
+                    <div class="invalid-feedback">Please enter a positive value.</div>
                 </div>
 
                 <div class="form-group">
@@ -59,7 +68,8 @@
                     </select>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block mt-4">Calculate Option Price</button>
+                <!-- Initially disabled button -->
+                <button type="submit" id="calculateBtn" class="btn btn-primary btn-block mt-4" disabled>Calculate Option Price</button>
             </form>
         </div>
 
@@ -72,8 +82,37 @@
         </div>
     </div>
 
-    <!-- JavaScript to show spinner on form submission -->
+    <!-- JavaScript for validation and spinner -->
     <script>
+        function validateSingle(input) {
+            const invalidFeedback = input.nextElementSibling; // Get the corresponding invalid feedback element
+
+            if (input.value <= 0) {
+                invalidFeedback.style.display = 'block'; // Show the validation message
+                input.classList.add('is-invalid'); // Add Bootstrap's invalid class
+            } else {
+                invalidFeedback.style.display = 'none'; // Hide the validation message
+                input.classList.remove('is-invalid'); // Remove Bootstrap's invalid class
+            }
+
+            // Validate entire form to enable/disable the button
+            validateForm();
+        }
+
+        function validateForm() {
+            const form = document.getElementById('optionForm');
+            const inputs = form.querySelectorAll('input[type="number"]');
+            let allValid = true;
+
+            inputs.forEach(input => {
+                if (input.value <= 0) {
+                    allValid = false;
+                }
+            });
+
+            document.getElementById('calculateBtn').disabled = !allValid;
+        }
+
         function showSpinner() {
             document.getElementById('formContainer').style.display = 'none';
             document.getElementById('loadingSpinner').style.display = 'block';
