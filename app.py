@@ -63,7 +63,7 @@ def calculate():
 
     # Calculate option price and node values
     option_price, node_values = binomial_option_price(S0, K, T, dt, r, sigma, option_type)
-    time.sleep(3)
+    time.sleep(1.5)
 
     return render_template('result.html', option_price=option_price, node_values=node_values)
 
