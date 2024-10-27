@@ -8,92 +8,66 @@ def option_payoff(spot_price, strike_price, option_type, position, premium):
         payoff = np.maximum(spot_price - strike_price, 0)  # Payoff for call options
     elif option_type == "put":
         payoff = np.maximum(strike_price - spot_price, 0)  # Payoff for put options
-    
+
     if position == "short":
         return -payoff + premium  # For short position, subtract payoff from premium
     else:
         return payoff - premium  # For long position, subtract premium from payoff
 
-# Strategy functions
-def bull_spread_payoff(spot_prices, strike1, strike2, premium1, premium2, option_type="call"):
-    if option_type == "call":
-        payoff1 = option_payoff(spot_prices, strike1, "call", "long", premium1)  # Long lower strike call
-        payoff2 = option_payoff(spot_prices, strike2, "call", "short", premium2)  # Short higher strike call
-    else:
-        payoff1 = option_payoff(spot_prices, strike1, "put", "long", premium1)  # Long lower strike put
-        payoff2 = option_payoff(spot_prices, strike2, "put", "short", premium2)  # Short higher strike put
-    return payoff1 + payoff2  # Total payoff for bull spread
-
-def bear_spread_payoff(spot_prices, strike1, strike2, premium1, premium2, option_type="call"):
-    if option_type == "call":
-        payoff1 = option_payoff(spot_prices, strike1, "call", "short", premium1)  # Short lower strike call
-        payoff2 = option_payoff(spot_prices, strike2, "call", "long", premium2)  # Long higher strike call
-    else:
-        payoff1 = option_payoff(spot_prices, strike1, "put", "short", premium1)  # Short lower strike put
-        payoff2 = option_payoff(spot_prices, strike2, "put", "long", premium2)  # Long higher strike put
-    return payoff1 + payoff2  # Total payoff for bear spread
-
-def box_spread_payoff(spot_prices, strike1, strike2, premium1, premium2, premium3, premium4):
-    call_bull = bull_spread_payoff(spot_prices, strike1, strike2, premium1, premium2, option_type="call")
-    put_bear = bear_spread_payoff(spot_prices, strike1, strike2, premium3, premium4, option_type="put")
-    return call_bull + put_bear  # Total payoff for box spread
+# Calculate payoff for a custom strategy based on user-defined options
+def custom_strategy_payoff(spot_prices, options):
+    total_payoff = np.zeros_like(spot_prices)
+    for option in options:
+        strike = option["strike"]
+        premium = option["premium"]
+        option_type = option["type"]
+        position = option["position"]
+        total_payoff += option_payoff(spot_prices, strike, option_type, position, premium)
+    return total_payoff
 
 # Main app interface
 def main():
-    st.title("Option Strategy Payoff Simulator")
+    st.title("Custom Option Strategy Payoff Simulator")
 
-    # Inputs for option parameters
-    st.sidebar.header("Option Parameters")
+    # Spot price and range for payoff calculation
     spot_price = st.sidebar.number_input("Current Spot Price", value=100.0)
-    volatility = st.sidebar.number_input("Annual Volatility (%)", value=30.0)
-    days_to_maturity = st.sidebar.number_input("Days to Maturity", value=30)
-
-    # Select strategy
-    strategy = st.selectbox("Choose Strategy", ["Bull Spread", "Bear Spread", "Box Spread"])
-    st.write(f"Selected Strategy: {strategy}")
-
-    # Strategy-specific inputs
-    if strategy in ["Bull Spread", "Bear Spread"]:
-        strike1 = st.number_input("Lower Strike Price", value=95.0)
-        strike2 = st.number_input("Higher Strike Price", value=105.0)
-        premium1 = st.number_input("Premium for Lower Strike Option", value=2.0)
-        premium2 = st.number_input("Premium for Higher Strike Option", value=1.0)
-        option_type = st.selectbox("Option Type", ["call", "put"])
-        
-    elif strategy == "Box Spread":
-        strike1 = st.number_input("Lower Strike Price", value=95.0)
-        strike2 = st.number_input("Higher Strike Price", value=105.0)
-        premium1 = st.number_input("Premium for Call at Lower Strike", value=2.0)
-        premium2 = st.number_input("Premium for Call at Higher Strike", value=1.0)
-        premium3 = st.number_input("Premium for Put at Lower Strike", value=1.5)
-        premium4 = st.number_input("Premium for Put at Higher Strike", value=0.5)
-
-    # Simulating stock price paths
     spot_range = np.linspace(spot_price * 0.5, spot_price * 1.5, 100)
 
-    # Calculate payoff based on strategy
-    if strategy == "Bull Spread":
-        gross_payoff = bull_spread_payoff(spot_range, strike1, strike2, premium1, premium2, option_type)
-        cost = premium1 - premium2
-    elif strategy == "Bear Spread":
-        gross_payoff = bear_spread_payoff(spot_range, strike1, strike2, premium1, premium2, option_type)
-        cost = premium2 - premium1
-    elif strategy == "Box Spread":
-        gross_payoff = box_spread_payoff(spot_range, strike1, strike2, premium1, premium2, premium3, premium4)
-        cost = premium1 - premium2 + premium3 - premium4
+    # Number of options
+    num_calls = st.sidebar.number_input("Number of Call Options", min_value=0, value=1, step=1)
+    num_puts = st.sidebar.number_input("Number of Put Options", min_value=0, value=1, step=1)
 
-    # Calculate net payoff
-    net_payoff = gross_payoff - cost  # Net Payoff = Gross Payoff - Total Cost
+    # Collect call option data
+    options = []
+    for i in range(num_calls):
+        st.subheader(f"Call Option {i+1}")
+        strike = st.number_input(f"Strike Price for Call {i+1}", value=100.0)
+        premium = st.number_input(f"Premium for Call {i+1}", value=2.0)
+        position = st.selectbox(f"Position for Call {i+1}", ["long", "short"])
+        options.append({"strike": strike, "premium": premium, "type": "call", "position": position})
 
-    st.write(f"Total cost of setting up {strategy}: {cost}")
+    # Collect put option data
+    for i in range(num_puts):
+        st.subheader(f"Put Option {i+1}")
+        strike = st.number_input(f"Strike Price for Put {i+1}", value=100.0)
+        premium = st.number_input(f"Premium for Put {i+1}", value=2.0)
+        position = st.selectbox(f"Position for Put {i+1}", ["long", "short"])
+        options.append({"strike": strike, "premium": premium, "type": "put", "position": position})
+
+    # Calculate gross and net payoff
+    gross_payoff = custom_strategy_payoff(spot_range, options)
+    total_cost = sum([option["premium"] if option["position"] == "long" else -option["premium"] for option in options])
+    net_payoff = gross_payoff - total_cost  # Net Payoff = Gross Payoff - Total Cost
+
+    st.write(f"Total cost of setting up the strategy: {total_cost}")
 
     # Plotting the payoff
     plt.figure(figsize=(10, 5))
     plt.plot(spot_range, gross_payoff, label="Gross Payoff")
-    plt.plot(spot_range, net_payoff, label="Net Payoff", linestyle="--")  # Net Payoff as a solid line
+    plt.plot(spot_range, net_payoff, label="Net Payoff", linestyle="--")
     plt.xlabel("Stock Price at Expiry")
     plt.ylabel("Payoff")
-    plt.title(f"{strategy} Strategy Payoff")
+    plt.title("Custom Option Strategy Payoff")
     plt.legend()
     st.pyplot(plt)
 
